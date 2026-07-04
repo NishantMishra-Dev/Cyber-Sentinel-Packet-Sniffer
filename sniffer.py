@@ -14,7 +14,7 @@ CORS(app)
 packets_data = []
 packet_id = 1
 
-# Naya variable: Sniffer ko Start/Stop control karne ke liye
+# Control flag for starting and stopping the sniffer
 is_sniffing = True 
 
 ip_tracker = defaultdict(int)
@@ -23,6 +23,7 @@ location_cache = {}
 domain_cache = {}
 
 def get_ip_location(ip):
+    # Ignore local IPs for geolocation
     if ip.startswith("10.") or ip.startswith("192.168.") or ip.startswith("127."):
         return "Local 🏠"
     if ip in location_cache:
@@ -39,6 +40,7 @@ def get_ip_location(ip):
     return "Unknown 🌍"
 
 def get_domain_name(ip):
+    # Resolve domain name from IP address
     if ip.startswith("10.") or ip.startswith("192.168.") or ip.startswith("127."):
         return "Local Device"
     if ip in domain_cache:
@@ -54,7 +56,7 @@ def get_domain_name(ip):
 def process_packet(packet):
     global packet_id, last_clear_time, is_sniffing
     
-    # Agar frontend se STOP dabaya gaya hai, toh packet ignore kar do
+    # Ignore packets if the sniffer is paused via the dashboard
     if not is_sniffing:
         return
         
@@ -73,6 +75,7 @@ def process_packet(packet):
         length = len(packet)
         current_time_str = datetime.datetime.now().strftime("%H:%M:%S")
         
+        # Clear the IP tracker every 5 seconds to reset threat detection
         current_time_sec = time.time()
         if current_time_sec - last_clear_time > 5:
             ip_tracker.clear()
@@ -96,6 +99,7 @@ def process_packet(packet):
             "location": dst_location
         }
         
+        # Maintain a maximum of 15 packets in memory to prevent UI lag
         if len(packets_data) >= 15:
             packets_data.pop(0)
             
@@ -106,7 +110,7 @@ def start_sniffing():
     print("Sniffer with DNS Resolution & Geo-Location started...")
     sniff(prn=process_packet, store=False)
 
-# --- NAYE ENDPOINTS BUTTONS KE LIYE ---
+# --- API ENDPOINTS ---
 @app.route('/api/packets', methods=['GET'])
 def get_packets():
     return jsonify(packets_data)
@@ -121,9 +125,8 @@ def toggle_sniffing():
 def clear_data():
     global packets_data, packet_id
     packets_data.clear()
-    packet_id = 1  # ID wapas 1 se start hogi
+    packet_id = 1 
     return jsonify({"status": "success"})
-# --------------------------------------
 
 if __name__ == '__main__':
     socket.setdefaulttimeout(0.5) 

@@ -3,8 +3,9 @@ import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from 'recha
 
 function App() {
   const [packets, setPackets] = useState([]);
-  const [isSniffing, setIsSniffing] = useState(true); // Button state
+  const [isSniffing, setIsSniffing] = useState(true);
 
+  // Fetch live network packets from the Python backend API
   const fetchLivePackets = () => {
     fetch('http://127.0.0.1:5000/api/packets')
       .then((response) => response.json())
@@ -12,13 +13,14 @@ function App() {
       .catch((error) => console.error("Error connecting to API: ", error));
   };
 
+  // Poll the API every 2 seconds for fresh data
   useEffect(() => {
     fetchLivePackets();
     const interval = setInterval(fetchLivePackets, 2000);
     return () => clearInterval(interval);
   }, []);
 
-  // --- BUTTON LOGIC ---
+  // Handle Pause/Resume functionality
   const handleToggle = () => {
     fetch('http://127.0.0.1:5000/api/toggle', { method: 'POST' })
       .then(res => res.json())
@@ -26,13 +28,14 @@ function App() {
       .catch(err => console.error(err));
   };
 
+  // Handle Clear Data functionality
   const handleClear = () => {
     fetch('http://127.0.0.1:5000/api/clear', { method: 'POST' })
       .then(() => setPackets([]))
       .catch(err => console.error(err));
   };
-  // --------------------
 
+  // Calculate protocol distribution for the Pie Chart
   const protocolCounts = packets.reduce((acc, packet) => {
     acc[packet.protocol] = (acc[packet.protocol] || 0) + 1;
     return acc;
@@ -59,7 +62,7 @@ function App() {
             fontSize: '16px', 
             fontWeight: 'bold', 
             color: 'white', 
-            backgroundColor: isSniffing ? '#e74c3c' : '#2ecc71', // Red for Stop, Green for Start
+            backgroundColor: isSniffing ? '#e74c3c' : '#2ecc71', 
             border: 'none', 
             borderRadius: '5px', 
             cursor: 'pointer',
